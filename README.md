@@ -182,7 +182,7 @@ For example, if you want to run a Nginx web server on the instance, you can run 
 Pull the Nginx image:
 ```
 docker pull nginx
-
+```
 Run the Nginx container
 ```
 docker run -p 80:80 nginx
