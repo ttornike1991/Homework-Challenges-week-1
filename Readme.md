@@ -158,7 +158,7 @@ services:
       - "4567:4567"
     volumes:
       - ./backend-flask:/backend-flask
-#Healthcheck    
+#---------------------------------------------------------Healthcheck    
     healthcheck:
       test: ["CMD-SHELL", "curl --fail http://localhost:4567/health || exit 1"]
       interval: 30s
@@ -172,7 +172,7 @@ services:
       - "3000:3000"
     volumes:
       - ./frontend-react-js:/frontend-react-js
- #Healthcheck    
+ #---------------------------------------------------------Healthcheck    
     healthcheck:
       test: ["CMD-SHELL", "curl --fail http://localhost:3000/health || exit 1"]
       interval: 30s
@@ -188,7 +188,7 @@ services:
     volumes:
       - "./docker/dynamodb:/home/dynamodblocal/data"
     working_dir: /home/dynamodblocal
-#Healthcheck    
+#----------------------------------------------------------------------Healthcheck    
     healthcheck:
       test: ["CMD-SHELL", "curl --fail http://localhost:8000/shell || exit 1"]
       interval: 30s
@@ -204,7 +204,7 @@ services:
       - '5432:5432'
     volumes: 
       - db:/var/lib/postgresql/data   
-#Healthcheck      
+#---------------------------------------------------------------------------------------Healthcheck      
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -h localhost -U postgres || exit 1"]
       interval: 30s
