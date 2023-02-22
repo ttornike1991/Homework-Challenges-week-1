@@ -143,3 +143,80 @@ COPY --from=build /frontend-react-js/build /frontend-react-js
 EXPOSE ${PORT}
 ENTRYPOINT ["/bin/bash", "./npmi.sh"]
 ```
+
+# 4 Implement a healthcheck in the V3 Docker compose file
+
+```
+version: "3.8"
+services:
+  backend-flask:
+    environment:
+      FRONTEND_URL: "https://3000-${GITPOD_WORKSPACE_ID}.${GITPOD_WORKSPACE_CLUSTER_HOST}"
+      BACKEND_URL: "https://4567-${GITPOD_WORKSPACE_ID}.${GITPOD_WORKSPACE_CLUSTER_HOST}"
+    build: ./backend-flask
+    ports:
+      - "4567:4567"
+    volumes:
+      - ./backend-flask:/backend-flask
+#Healthcheck    
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost:4567/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  frontend-react-js:
+    environment:
+      REACT_APP_BACKEND_URL: "https://4567-${GITPOD_WORKSPACE_ID}.${GITPOD_WORKSPACE_CLUSTER_HOST}"
+    build: ./frontend-react-js
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend-react-js:/frontend-react-js
+ #Healthcheck    
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  dynamodb-local:
+    user: root
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
+    image: "amazon/dynamodb-local:latest"
+    container_name: dynamodb-local
+    ports:
+      - "8000:8000"
+    volumes:
+      - "./docker/dynamodb:/home/dynamodblocal/data"
+    working_dir: /home/dynamodblocal
+#Healthcheck    
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost:8000/shell || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  db:
+    image: postgres:13-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    ports:
+      - '5432:5432'
+    volumes: 
+      - db:/var/lib/postgresql/data   
+#Healthcheck      
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -U postgres || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks: 
+  internal-network:
+    driver: bridge
+    name: cruddur
+    
+volumes:
+  db:
+    driver: local
+```
