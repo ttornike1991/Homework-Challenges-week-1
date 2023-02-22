@@ -1,8 +1,17 @@
 Homework-Challenges-week-1
 Containerization
 
-# 1 Run the dockerfile CMD as an external script
-We have to make forexample **start.sh** into folder where is docker file: **This is for Backend-flask**
+# 1 Run the dockerfile CMD  
+
+**ALSO IMPLEMENTED**
+
+- Cleaning up after the build step by removing the cache files generated during the installation of dependencies.
+- Using environment variables for configuration, in this case, the FLASK_ENV and PORT.
+- No additional layers were introduced to the Dockerfile to improve build times.
+
+
+**Backend-flask**
+We have to make forexample **start.sh** into folder where is docker file: 
 
 **start.sh content:**
 ```
@@ -14,37 +23,36 @@ chmod +x start.sh
 ```
 **Dockerfile content:**
 ```
-FROM python:3.12.0a5-slim
-
-# Inside Container
-# make a new folder inside container
+# Stage 1: Build and install dependencies
+FROM python:3.12.0a5-slim AS builder
 WORKDIR /backend-flask
-
-# Outside Container -> Inside Container
-# this contains the libraries want to install to run the app
 COPY requirements.txt requirements.txt
+RUN pip3 install --user --no-cache-dir -r requirements.txt \
+     && rm -rf /root/.cache/pip/* # clean up after the step
 
-# Inside Container
-# Install the python libraries used for the app
-RUN pip3 install -r requirements.txt
-
-# Outside Container -> Inside Container
-# . means everything in the current directory
-# first period . - /backend-flask (outside container)
-# second period . /backend-flask (inside container)
+# Stage 2: Copy dependencies and source code
+FROM python:3.12.0a5-slim
+WORKDIR /backend-flask
+COPY --from=builder /root/.local /usr/local
 COPY . .
 
-# Set Enviroment Variables (Env Vars)
-# Inside Container and wil remain set when the container is running
+# Set environment variables
 ENV FLASK_ENV=development
-
 EXPOSE ${PORT}
 
-#Use external script start.sh
+# Create a new user and switch to that user
+RUN groupadd -r myapp && useradd --no-log-init -r -g myapp myapp
+RUN chown -R myapp:myapp /backend-flask
+USER myapp
 
+# Use external script start.sh
 ENTRYPOINT ["/bin/bash", "./start.sh"]
+
 ```
-We have to make forexample **npmi.sh** into folder where is docker file: This is for **frontend-react-js**
+
+**frontend-react-js**
+
+We have to make forexample **npmi.sh** into folder where is docker file: This is for 
 
 **npmi.sh content:**
 
@@ -62,15 +70,21 @@ chmod +x npmi.sh
 
 
 ```
-FROM node:19.6.0-bullseye-slim
-
-ENV PORT=3000
-
-COPY . /frontend-react-js
+# Build stage
+FROM node:19.6.0-bullseye-slim AS build
 WORKDIR /frontend-react-js
-RUN npm install
-EXPOSE ${PORT}
+COPY . /frontend-react-js
+RUN npm install --production && npm run build \
+    && rm -rf /frontend-react-js/node_modules # clean up after the step
+
+# Production stage
+FROM node:19.6.0-bullseye-slim
+ENV PORT=3000
+WORKDIR /frontend-react-js
+COPY --from=build /frontend-react-js/build /frontend-react-js
+EXPOSE $PORT
 ENTRYPOINT ["/bin/bash", "./npmi.sh"]
+
 ```
 
 # 2 Push and tag a image to DockerHub
